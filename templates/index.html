@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>المستشار القانوني الذكي</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <div class="badge">الإصدار التجريبي</div>
+            <h1>⚖️ المستشار القانوني الذكي</h1>
+            <p>تحليل قانوني مبني حصرا على النصوص القانونية المضافة إلى المنصة.</p>
+        </header>
+
+        <section class="card">
+            <form method="post">
+                <label for="question">اكتب سؤالك القانوني</label>
+                <textarea id="question" name="question" rows="6"
+                    placeholder="مثال: ما المسؤولية المترتبة على إحداث ضرر بالغير؟"
+                    required>{{ question }}</textarea>
+                <button type="submit">تحليل السؤال</button>
+            </form>
+        </section>
+
+        {% if answer %}
+        <section class="card">
+            <h2>التحليل القانوني</h2>
+            <div class="answer">{{ answer }}</div>
+        </section>
+        {% endif %}
+
+        {% if articles %}
+        <section class="card">
+            <h2>النصوص القانونية المرتبطة</h2>
+            {% for a in articles %}
+            <article class="law">
+                <h3>{{ a.law_name }} — المادة {{ a.article_number }}</h3>
+                {% if a.title %}<strong>{{ a.title }}</strong>{% endif %}
+                <p>{{ a.text }}</p>
+            </article>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <footer>
+            <p>المنصة تعتمد على النصوص القانونية المدرجة في قاعدة بياناتها فقط.</p>
+        </footer>
+    </main>
+</body>
+</html>
