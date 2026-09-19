@@ -2,7 +2,7 @@ import os
 import re
 import json
 from flask import Flask, render_template, request
-from openai import OpenAI
+from google import genai
 
 app = Flask(__name__)
 
@@ -67,51 +67,50 @@ def build_sources_text(articles):
 def answer_with_ai(question, articles):
     if not articles:
         return (
-            "لم أجد في قاعدة النصوص القانونية الحالية مادة كافية للإجابة على هذا السؤال. "
-            "يرجى إضافة القانون أو المواد ذات الصلة إلى قاعدة البيانات."
+            "لم أجد في قاعدة النصوص القانونية الحالية مادة كافية "
+            "للإجابة على هذا السؤال."
         )
 
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
+
     if not api_key:
-        # Retrieval-only fallback so the app can be tested before adding an API key.
-        refs = "، ".join(
-            f"المادة {a['article_number']} من {a['law_name']}" for a in articles[:3]
-        )
-        return (
-            "تم العثور على نصوص قانونية مرتبطة بالسؤال، لكن توليد التحليل الذكي غير مفعّل "
-            "لعدم ضبط OPENAI_API_KEY بعد. المواد الأقرب: " + refs
-        )
+        return "لم يتم ضبط GEMINI_API_KEY في إعدادات الموقع."
 
-    client = OpenAI(api_key=api_key)
+    client = genai.Client(api_key=api_key)
+
     sources = build_sources_text(articles)
 
-    instructions = """أنت مستشار قانوني ذكي متخصص في النصوص القانونية الإماراتية.
-التزم التزاما صارما بالنصوص القانونية المقدمة لك في السياق فقط.
-لا تستخدم أحكاما قضائية ولا معلومات قانونية من خارج النصوص المقدمة.
-إذا كانت النصوص لا تكفي للإجابة، صرح بوضوح أن النصوص المتاحة غير كافية.
-لا تخترع رقم مادة أو قاعدة قانونية.
-اكتب بالعربية الواضحة، وبالترتيب التالي:
-1) الإجابة المختصرة
-2) السند القانوني
-3) التحليل
-4) ما يحتاج إلى تحقق أو معلومات إضافية، إن وجد
-وفي النهاية اذكر أن الإجابة تحليل معلوماتي مبني على النصوص المضافة للمنصة وليست بديلا عن مراجعة مختص مرخص عند الحاجة.
-"""
+    prompt = f"""
+أنت مستشار قانوني ذكي متخصص في النصوص القانونية الإماراتية.
 
-    user_input = f"""السؤال:
+التزم بالقواعد التالية:
+- استخدم فقط النصوص القانونية الموجودة أدناه.
+- لا تستخدم أحكاما قضائية.
+- لا تستخدم معلومات قانونية من خارج النصوص المقدمة.
+- لا تخترع أرقام مواد أو قواعد قانونية.
+- إذا كانت النصوص غير كافية، قل بوضوح إن النصوص المتاحة لا تكفي.
+
+رتب الإجابة كالتالي:
+
+1. الإجابة المختصرة
+2. السند القانوني
+3. التحليل القانوني
+4. المعلومات الإضافية المطلوبة إن وجدت
+
+السؤال:
 {question}
 
-النصوص القانونية المسترجعة من قاعدة المنصة:
+النصوص القانونية المتاحة:
 {sources}
 """
 
-    response = client.responses.create(
-        model=MODEL,
-        instructions=instructions,
-        input=user_input,
+    response = client.models.generate_content(
+        model="gemini-3.8-flash",
+        contents=prompt
     )
-    return response.output_text
 
+    return response.text
+    
 @app.route("/", methods=["GET", "POST"])
 def index():
     answer = None
