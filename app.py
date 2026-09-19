@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import time
 from flask import Flask, render_template, request
 from google import genai
 
@@ -114,12 +115,22 @@ def answer_with_ai(question, articles):
 {sources}
 """
 
-    response = client.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=prompt
-    )
+for attempt in range(3):
+    try:
+        response = client.models.generate_content(
+            model="gemini-3.8-flash",
+            contents=prompt
+        )
 
-    return response.text
+        return response.text
+
+    except Exception as e:
+        if "503" in str(e) or "UNAVAILABLE" in str(e):
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+                continue
+
+        raise
     
 @app.route("/", methods=["GET", "POST"])
 def index():
