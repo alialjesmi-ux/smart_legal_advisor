@@ -7,8 +7,11 @@ from google import genai
 
 app = Flask(__name__)
 
-DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "laws.json")
-MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
+DATA_FILE = os.path.join(
+    os.path.dirname(__file__),
+    "data",
+    "laws.json"
+)
 
 def normalize_arabic(text):
     text = (text or "").strip().lower()
@@ -94,10 +97,7 @@ def answer_with_ai(question, articles):
 - اكتب العناوين كنص عادي وواضح.
 - لا تفترض أي واقعة لم يذكرها المستخدم.
 - إذا كانت النتيجة تتوقف على واقعة ناقصة، وضح ذلك صراحة.
-- لا تستخدم إلا المواد الموجودة في قاعدة النصوص القانونية.
 - لا تذكر أي حكم قضائي أو اجتهاد قضائي.
-- لا تخترع أرقام مواد.
-- إذا لم تكف النصوص المتاحة، اذكر ذلك بوضوح.
 
 رتب الإجابة كالتالي:
 
@@ -115,22 +115,22 @@ def answer_with_ai(question, articles):
 {sources}
 """
 
-for attempt in range(3):
-    try:
-        response = client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=prompt
-        )
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model="gemini-3.8-flash",
+                contents=prompt
+            )
 
-        return response.text
+            return response.text
 
-    except Exception as e:
-        if "503" in str(e) or "UNAVAILABLE" in str(e):
-            if attempt < 2:
-                time.sleep(2 ** attempt)
-                continue
+        except Exception as e:
+            if "503" in str(e) or "UNAVAILABLE" in str(e):
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+                    continue
 
-        raise
+            raise
     
 @app.route("/", methods=["GET", "POST"])
 def index():
